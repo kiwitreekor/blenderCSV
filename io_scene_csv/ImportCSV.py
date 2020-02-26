@@ -42,21 +42,6 @@ class ImportCsv:
         if csv_mesh.daytime_texture_file == "" and mat.alpha != csv_mesh.diffuse_color[3] * self.INV255:
             return None
 
-        if mat.active_texture_index < len(mat.texture_slots):
-            slot = mat.texture_slots[mat.active_texture_index]
-
-            if slot is None:
-                return None
-
-            if type(slot.texture) is not bpy.types.ImageTexture:
-                return None
-
-            if slot.texture.image.filepath != csv_mesh.daytime_texture_file:
-                return None
-
-            if slot.alpha_factor != csv_mesh.diffuse_color[3] * self.INV255:
-                return None
-
         if mat.csv_props.use_add_face2 != csv_mesh.use_add_face2:
             return None
 
@@ -79,28 +64,20 @@ class ImportCsv:
         if mat is None:
             logger.debug("Create new material: " + mat_name)
             mat = bpy.data.materials.new(mat_name)
-            mat.diffuse_color = (csv_mesh.diffuse_color[0] * self.INV255, csv_mesh.diffuse_color[1] * self.INV255, csv_mesh.diffuse_color[2] * self.INV255)
-            mat.alpha = csv_mesh.diffuse_color[3] * self.INV255
-            mat.transparency_method = "Z_TRANSPARENCY"
-            mat.use_transparency = csv_mesh.diffuse_color[3] != 255
+            mat.diffuse_color = (csv_mesh.diffuse_color[0] * self.INV255, csv_mesh.diffuse_color[1] * self.INV255, csv_mesh.diffuse_color[2] * self.INV255, csv_mesh.diffuse_color[3] * self.INV255)
+            if csv_mesh.diffuse_color[3] != 255:
+                mat.blend_method = 'BLEND'
+            else:
+                mat.blend_method = 'OPAQUE'
 
             # Set the texture on the material.
             if csv_mesh.daytime_texture_file != "":
-                texture = bpy.data.textures.get(mat_name)
-
-                if texture is None:
-                    texture = bpy.data.textures.new(mat_name, "IMAGE")
-                    texture.image = bpy.data.images.load(csv_mesh.daytime_texture_file)
-
-                slot = mat.texture_slots.add()
-                slot.texture = texture
-                slot.texture_coords = "UV"
-                slot.uv_layer = "default"
-                slot.use_map_color_diffuse = True
-                slot.use_map_alpha = True
-                slot.alpha_factor = mat.alpha
-                mat.alpha = 0.0
-                mat.use_transparency = True
+                mat.use_nodes = True
+                bsdf = mat.node_tree.nodes["Principled BSDF"]
+                texture = mat.node_tree.nodes.new('ShaderNodeTexImage')
+                texture.image = bpy.data.images.load(csv_mesh.daytime_texture_file)
+                
+                mat.node_tree.links.new(bsdf.inputs['Base Color'], texture.outputs['Color'])
 
             mat.csv_props.use_add_face2 = csv_mesh.use_add_face2
             mat.csv_props.nighttime_texture_file = csv_mesh.nighttime_texture_file
@@ -109,7 +86,7 @@ class ImportCsv:
         blender_mesh.materials.append(mat)
 
     def set_texcoords(self, csv_mesh: CSV.CsvMesh, blender_mesh: bpy.types.Mesh) -> None:
-        blender_mesh.uv_textures.new("default")
+        blender_mesh.uv_layers.new(name="default")
 
         for face in blender_mesh.polygons:
             for vert_idx, loop_idx in zip(face.vertices, face.loop_indices):
@@ -143,7 +120,7 @@ class ImportCsv:
         for i in range(len(meshes_list)):
             blender_mesh = bpy.data.meshes.new(str(obj_base_name) + " - " + str(i))
             blender_mesh.from_pydata(meshes_list[i].vertex_list, [], meshes_list[i].faces_list)
-            blender_mesh.update(True)
+            blender_mesh.update(calc_edges=True)
 
             self.create_material(meshes_list[i], blender_mesh)
 
@@ -154,7 +131,9 @@ class ImportCsv:
             blender_mesh.calc_normals()
 
             obj = bpy.data.objects.new(blender_mesh.name, blender_mesh)
-            obj.select = True
+            bpy.context.collection.objects.link(obj)
+            
+            obj.select_set(True)
 
             obj.csv_props.use_emissive_color = meshes_list[i].use_emissive_color
             obj.csv_props.emissive_color = (meshes_list[i].emissive_color[0] * self.INV255, meshes_list[i].emissive_color[1] * self.INV255, meshes_list[i].emissive_color[2] * self.INV255)
@@ -163,5 +142,3 @@ class ImportCsv:
             obj.csv_props.glow_attenuation_mode = meshes_list[i].glow_attenuation_mode
             obj.csv_props.use_transparent_color = meshes_list[i].use_transparent_color
             obj.csv_props.transparent_color = (meshes_list[i].transparent_color[0] * self.INV255, meshes_list[i].transparent_color[1] * self.INV255, meshes_list[i].transparent_color[2] * self.INV255)
-
-            bpy.context.scene.objects.link(obj)

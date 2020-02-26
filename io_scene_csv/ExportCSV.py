@@ -122,25 +122,27 @@ class ExportCsv:
                     mat = obj.material_slots[m_idx].material
                     mesh.name += ", Material: " + mat.name
 
-                    # Add diffuse color to mesh
-                    mesh.diffuse_color = (round(mat.diffuse_color[0] * 255), round(mat.diffuse_color[1] * 255), round(mat.diffuse_color[2] * 255), round(mat.alpha * 255) if mat.use_transparency else 255)
-
-                    # Add texture to mesh
                     model_dir = pathlib.Path(self.file_path).parent
-
-                    if mat.active_texture_index < len(mat.texture_slots):
-                        texture_slot = mat.texture_slots[mat.active_texture_index]
-
-                        if texture_slot is not None and type(texture_slot.texture) is bpy.types.ImageTexture:
-                            if texture_slot.texture.image.filepath != "":
-                                texture_path = pathlib.Path(bpy.path.abspath(texture_slot.texture.image.filepath)).resolve()
-
-                                if self.option.use_copy_texture_separate_directory:
-                                    mesh.daytime_texture_file = self.copy_texture_separate_directory(model_dir, texture_path)
-                                else:
-                                    mesh.daytime_texture_file = str(texture_path)
-
-                            mesh.diffuse_color = (mesh.diffuse_color[0], mesh.diffuse_color[1], mesh.diffuse_color[2], round(texture_slot.alpha_factor * 255))
+                    
+                    if mat.use_nodes:
+                        # Add texture to mesh
+                        for node in mat.node_tree.nodes:
+                            if node.bl_idname == 'ShaderNodeTexImage':
+                                img = node.image
+                                if img.filepath != "":
+                                    texture_path = pathlib.Path(bpy.path.abspath(img.filepath)).resolve()
+                                    
+                                    if self.option.use_copy_texture_separate_directory:
+                                        mesh.daytime_texture_file = self.copy_texture_separate_directory(model_dir, texture_path)
+                                    else:
+                                        mesh.daytime_texture_file = str(texture_path)
+                            
+                                mesh.diffuse_color = (mesh.diffuse_color[0], mesh.diffuse_color[1], mesh.diffuse_color[2], 255)
+                                
+                                break
+                    else:
+                        # Add diffuse color to mesh
+                        mesh.diffuse_color = (round(mat.diffuse_color[0] * 255), round(mat.diffuse_color[1] * 255), round(mat.diffuse_color[2] * 255), round(mat.alpha * 255) if mat.blend_method == 'BLEND' else 255)
 
                     mesh.use_add_face2 = mat.csv_props.use_add_face2
 

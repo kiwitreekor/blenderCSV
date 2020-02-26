@@ -281,7 +281,7 @@ class CsvObject:
 
         for i in range(len(csv_text)):
             # Collect arguments
-            arguments = csv_text[i].split(",")
+            arguments = csv_text[i].rstrip(",").split(",")
 
             for j in range(len(arguments)):
                 arguments[j] = arguments[j].strip()

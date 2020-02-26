@@ -23,8 +23,8 @@ bl_info = {
     "name": "Importer/Exporter OpenBVE CSV models",
     "category": "Import-Export",
     "author": "Dmitry Pritykin",
-    "version": (0, 6, 0),
-    "blender": (2, 79, 0)
+    "version": (0, 7, 0),
+    "blender": (2, 80, 0)
 }
 
 logger = logging.getLogger()
@@ -245,16 +245,16 @@ class CsvMeshPanel(bpy.types.Panel):
         return context.object and context.object.type == "MESH"
 
     def draw(self, context):
-        self.layout.label("SetEmissiveColor:")
+        self.layout.label(text="SetEmissiveColor:")
         self.layout.prop(context.object.csv_props, "use_emissive_color")
         self.layout.prop(context.object.csv_props, "emissive_color")
         self.layout.separator()
-        self.layout.label("SetBlendMode:")
+        self.layout.label(text="SetBlendMode:")
         self.layout.prop(context.object.csv_props, "blend_mode")
         self.layout.prop(context.object.csv_props, "glow_half_distance")
         self.layout.prop(context.object.csv_props, "glow_attenuation_mode")
         self.layout.separator()
-        self.layout.label("SetDecalTransparentColor:")
+        self.layout.label(text="SetDecalTransparentColor:")
         self.layout.prop(context.object.csv_props, "use_transparent_color")
         self.layout.prop(context.object.csv_props, "transparent_color")
 
@@ -272,7 +272,7 @@ class CsvMaterialPanel(bpy.types.Panel):
     def draw(self, context):
         self.layout.prop(context.material.csv_props, "use_add_face2")
         self.layout.separator()
-        self.layout.label("LoadTexture:")
+        self.layout.label(text="LoadTexture:")
         self.layout.prop(context.material.csv_props, "nighttime_texture_file")
 
 
@@ -286,10 +286,10 @@ def menu_export(self, context):
 
 def register():
     bpy.utils.register_class(CsvImporter)
-    bpy.types.INFO_MT_file_import.append(menu_import)
+    bpy.types.TOPBAR_MT_file_import.append(menu_import)
 
     bpy.utils.register_class(CsvExporter)
-    bpy.types.INFO_MT_file_export.append(menu_export)
+    bpy.types.TOPBAR_MT_file_export.append(menu_export)
 
     bpy.utils.register_class(CsvMeshProperties)
     bpy.types.Object.csv_props = bpy.props.PointerProperty(type=CsvMeshProperties)
@@ -304,10 +304,10 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(CsvImporter)
-    bpy.types.INFO_MT_file_import.remove(menu_import)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_import)
 
     bpy.utils.unregister_class(CsvExporter)
-    bpy.types.INFO_MT_file_export.remove(menu_export)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_export)
 
     bpy.utils.unregister_class(CsvMeshProperties)
     del bpy.types.Object.csv_props
